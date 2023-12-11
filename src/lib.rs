@@ -66,12 +66,6 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
 
     let device_list = (0..count).map(|index| Device::new(index, 4)).collect::<Vec<_>>();
 
-    let out_file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .open(out_path)?;
-    let out_file = Mutex::new(out_file);
-
     let file_size = std::fs::metadata(in_path)?.len();
     const CHUNK_SIZE: u64 = 512 * 1024 * 1024;
 
@@ -84,6 +78,11 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
 
     let res = (0..chunks).into_par_iter()
         .map(|i| {
+            let mut out_file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .open(out_path)?;
+
             let device = &device_list[i as usize % device_list.len()];
             let mut tree_data = vec![0u8; (CHUNK_SIZE * 2 - 32) as usize];
 
@@ -94,8 +93,6 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
             device.sync();
             unsafe { build_tree(device.index, tree_data.as_mut_ptr(), CHUNK_SIZE as usize / 32) };
             device.release();
-
-            let mut out_file = out_file.lock().unwrap();
 
             let mut chunk_size = CHUNK_SIZE;
             let mut offset = 0;
@@ -117,7 +114,12 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
         .collect::<io::Result<Vec<[u8; 32]>>>();
 
     let mut node_list = res?;
-    let mut out_file = out_file.lock().unwrap();
+
+    let mut out_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(out_path)?;
+
     out_file.seek(SeekFrom::End(0))?;
 
     while node_list.len() > 0 {
@@ -140,67 +142,4 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-
-    use sha2::{Digest, Sha256};
-
-    use super::*;
-
-    #[test]
-    fn get_gpus() {
-        let mut count = 0;
-        unsafe { cudaGetDeviceCount(&mut count) };
-        println!("{}", count);
-    }
-
-    #[test]
-    fn it_works() {
-        let t = Instant::now();
-        let gpu_tree_data = vec![];
-        println!("gpu: {:?}", t.elapsed());
-
-        let t = Instant::now();
-
-        let mut tree_data = vec![0u8; 1024 * 1024 * 32];
-
-        for slice in tree_data.chunks_mut(32) {
-            let mut hasher = Sha256::new();
-            hasher.update(&[LEAF]);
-            hasher.update(&*slice);
-            let res = hasher.finalize();
-            slice.copy_from_slice(&res);
-        }
-
-        let mut data = tree_data.clone();
-        let mut label: Vec<u8> = Vec::with_capacity(tree_data.len() / 2);
-
-        loop {
-            for slice in data.chunks(64) {
-                let mut hasher = Sha256::new();
-                hasher.update(&[INTERIOR]);
-                hasher.update(slice);
-                let res = hasher.finalize();
-                label.extend_from_slice(&res);
-            }
-
-            tree_data.extend_from_slice(&label);
-
-            if label.len() == 32 {
-                break;
-            }
-            data = label.clone();
-            label.clear();
-        }
-
-        println!("cpu: {:?}", t.elapsed());
-
-        println!("{}, {}", tree_data.len() / 32, gpu_tree_data.len() / 32);
-        // assert_eq!(&label[262144 * 32],&gpu_tree_data[262144 * 32])
-        // assert!(&tree_data[..(1024 * 1024) * 32] == &gpu_tree_data[..(1024 * 1024) * 32])
-        assert!(&tree_data == &gpu_tree_data);
-    }
 }
