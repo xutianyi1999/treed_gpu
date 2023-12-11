@@ -249,7 +249,7 @@ extern "C"
 {
     void build_tree(int device, BYTE* tree_data, size_t nodes)
     {
-        cudaErrorCheck(cudaSetDevice(0), "cudaSetDevice");
+        cudaErrorCheck(cudaSetDevice(device), "cudaSetDevice");
 
         cudaStream_t stream;
         cudaErrorCheck(cudaStreamCreate(&stream), "cudaStreamCreate");
