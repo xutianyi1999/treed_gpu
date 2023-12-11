@@ -195,18 +195,6 @@ __device__ void piece_hash(BYTE* left, BYTE* right, BYTE* out)
     cuda_sha256_final(&ctx, out);
 }
 
-__global__ void create_base_data(BYTE* base_data)
-{
-    WORD thread = blockIdx.x * blockDim.x + threadIdx.x;
-    BYTE* in = base_data + thread * SHA256_BLOCK_SIZE;
-
-    CUDA_SHA256_CTX ctx;
-    cuda_sha256_init(&ctx);
-    cuda_sha256_update(&ctx, &LEAF, 1);
-    cuda_sha256_update(&ctx, in, SHA256_BLOCK_SIZE);
-    cuda_sha256_final(&ctx, in);
-}
-
 __global__ void create_tree(BYTE* tree_data)
 {
     WORD nodes = gridDim.x * blockDim.x * 2;
@@ -260,12 +248,7 @@ extern "C"
         cudaErrorCheck(cudaMemcpyAsync(cuda_tree_data, tree_data, nodes * SHA256_BLOCK_SIZE, cudaMemcpyHostToDevice, stream), "cudaMemcpyAsync");
 
         WORD thread = 256;
-        WORD block = (nodes + thread - 1) / thread;
-
-        create_base_data<<<block, thread, 0, stream>>>(cuda_tree_data);
-        cudaErrorCheck(cudaGetLastError(), "create_base_data");
-
-        block = (nodes / 2 + thread - 1) / thread;
+        WORD block = (nodes / 2 + thread - 1) / thread;
         BYTE* tree_data_offset = cuda_tree_data;
         size_t next_nodes = nodes;
 
