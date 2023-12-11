@@ -110,7 +110,6 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
             }
 
             let node: &[u8; 32] = (&next_buff[..chunk_size as usize]).try_into().unwrap();
-            out_file.write_all(node)?;
             Ok(*node)
         })
         .collect::<io::Result<Vec<[u8; 32]>>>();
