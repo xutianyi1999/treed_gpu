@@ -7,10 +7,6 @@ use std::sync::{Condvar, Mutex};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use sha2::{Digest, Sha256};
 
-#[allow(unused)]
-const LEAF: u8 = 0x00;
-const INTERIOR: u8 = 0x01;
-
 extern "C" {
     fn build_tree(device: i32, tree_data: *mut u8, nodes: usize);
 
@@ -49,6 +45,12 @@ impl Device {
 
         cvar.notify_one();
     }
+}
+
+#[inline]
+fn trim_to_fr32(buff: &mut [u8; 32]) {
+    // strip last two bits, to ensure result is in Fr.
+    buff[31] &= 0b0011_1111;
 }
 
 pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
@@ -128,11 +130,11 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
             let right = &nodes[1];
 
             let mut hasher = Sha256::new();
-            hasher.update(&[INTERIOR]);
             hasher.update(left);
             hasher.update(right);
-            let out = hasher.finalize();
-            let out: &[u8; 32] = out.as_slice().try_into().unwrap();
+            let mut out = hasher.finalize();
+            let out: &mut [u8; 32] = out.as_mut_slice().try_into().unwrap();
+            trim_to_fr32(out);
             *out
         }).collect();
     }

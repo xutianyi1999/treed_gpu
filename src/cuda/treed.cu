@@ -182,17 +182,17 @@ __global__ void kernel_sha256_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
 	cuda_sha256_final(&ctx, out);
 }
 
-__constant__ BYTE LEAF = 0x00;
-__constant__ BYTE INTERIOR = 0x01;
-
 __device__ void piece_hash(BYTE* left, BYTE* right, BYTE* out)
 {
     CUDA_SHA256_CTX ctx;
     cuda_sha256_init(&ctx);
-    cuda_sha256_update(&ctx, &INTERIOR, 1);
     cuda_sha256_update(&ctx, left, SHA256_BLOCK_SIZE);
     cuda_sha256_update(&ctx, right, SHA256_BLOCK_SIZE);
     cuda_sha256_final(&ctx, out);
+
+    // trim_to_fr32
+    // strip last two bits, to ensure result is in Fr.
+    out[31] &= 0b00111111;
 }
 
 __global__ void create_tree(BYTE* tree_data)
