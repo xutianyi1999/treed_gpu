@@ -116,6 +116,7 @@ pub fn build_treed(in_path: &Path, out_path: &Path) -> io::Result<()> {
 
     let mut node_list = res?;
     let mut out_file = out_file.lock().unwrap();
+    out_file.seek(SeekFrom::End(0))?;
 
     while node_list.len() > 0 {
         for node in node_list.as_slice() {
