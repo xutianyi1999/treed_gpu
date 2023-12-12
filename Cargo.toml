@@ -16,3 +16,7 @@ log4rs = "1"
 
 [build-dependencies]
 cc = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
