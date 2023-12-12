@@ -271,7 +271,7 @@ extern "C"
         }
 
         // 2^n - 1
-        cudaErrorCheck(cudaMemcpyAsync(tree_data, cuda_tree_data, (nodes * 2 - 1) * SHA256_BLOCK_SIZE, cudaMemcpyDeviceToHost, stream), "cudaMemcpyAsync");
+        cudaErrorCheck(cudaMemcpyAsync(tree_data + nodes * SHA256_BLOCK_SIZE, cuda_tree_data + nodes * SHA256_BLOCK_SIZE, (nodes - 1) * SHA256_BLOCK_SIZE, cudaMemcpyDeviceToHost, stream), "cudaMemcpyAsync");
 
         cudaErrorCheck(cudaStreamSynchronize(stream), "cudaStreamSynchronize");
         cudaErrorCheck(cudaStreamDestroy(stream), "cudaStreamDestroy");

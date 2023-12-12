@@ -1,12 +1,16 @@
 #![feature(unsafe_cell_from_mut)]
 #![feature(write_all_vectored)]
 
+#[macro_use]
+extern crate log;
+
 use std::cell::UnsafeCell;
 use std::fs::OpenOptions;
 use std::io;
 use std::io::{IoSlice, Read, Write};
 use std::path::Path;
 use std::ptr::null_mut;
+use std::time::Instant;
 
 use sha2::{Digest, Sha256};
 
@@ -122,14 +126,20 @@ pub fn build_treed(
         });
 
         let base_data_writer = s.spawn(move || {
+            let t = Instant::now();
+
             while let Ok(slice) = base_data_read.recv() {
                 out_file.write_all(slice).unwrap();
             };
+
+            info!("finish to write base data, use: {:?}", t.elapsed());
             out_file
         });
 
         let mut offset = 0;
         let mut chunk_index = 0;
+
+        let t = Instant::now();
 
         while chunk_index < chunks {
             let chunk = &mut unsafe { &mut *buffer.0.get() }[offset..offset + CHUNK_SIZE];
@@ -147,7 +157,9 @@ pub fn build_treed(
                 let tree_data = &mut buff[offset..offset + CHUNK_SIZE * 2 - 32];
 
                 let device = device_pool_rx.recv().unwrap();
+                let t = Instant::now();
                 unsafe { build_tree(device.index, tree_data.as_mut_ptr(), device.buff, CHUNK_SIZE / 32) };
+                info!("build_tree use: {:?}", t.elapsed());
                 device_pool_tx.send(device).unwrap();
 
                 tree_data_write.send((i, &tree_data[CHUNK_SIZE..])).unwrap();
@@ -158,8 +170,12 @@ pub fn build_treed(
             chunk_index += 1;
         }
 
+        info!("read base_data use: {:?}", t.elapsed());
+
         drop(base_data_write);
         let mut out_file = base_data_writer.join().unwrap();
+
+        let t = Instant::now();
 
         let mut expect_index = 0usize;
         let mut chunk_size = CHUNK_SIZE / 2;
@@ -218,6 +234,8 @@ pub fn build_treed(
                 *out
             }).collect();
         }
+
+        info!("build total sub_tree use: {:?}", t.elapsed());
         Ok(())
     })
 }

@@ -9,8 +9,10 @@ edition = "2021"
 sha2 = "0.10"
 digest = "0.10"
 crossbeam-channel = "0.5"
+log = "0.4"
 
 [dev-dependencies]
+log4rs = "1"
 
 [build-dependencies]
 cc = "1"
