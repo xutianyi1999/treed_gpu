@@ -235,16 +235,12 @@ size_t calc_offset(size_t prev_nodes, size_t nodes)
 
 extern "C"
 {
-    void build_tree(int device, BYTE* tree_data, size_t nodes)
+    void build_tree(int device, BYTE* tree_data, BYTE* cuda_tree_data, size_t nodes)
     {
         cudaErrorCheck(cudaSetDevice(device), "cudaSetDevice");
 
         cudaStream_t stream;
         cudaErrorCheck(cudaStreamCreate(&stream), "cudaStreamCreate");
-
-        BYTE* cuda_tree_data;
-        cudaErrorCheck(cudaMallocAsync(&cuda_tree_data, (nodes * 2 - 1) * SHA256_BLOCK_SIZE, stream), "cudaMallocAsync");
-
         cudaErrorCheck(cudaMemcpyAsync(cuda_tree_data, tree_data, nodes * SHA256_BLOCK_SIZE, cudaMemcpyHostToDevice, stream), "cudaMemcpyAsync");
 
         WORD thread = 256;
@@ -276,7 +272,6 @@ extern "C"
 
         // 2^n - 1
         cudaErrorCheck(cudaMemcpyAsync(tree_data, cuda_tree_data, (nodes * 2 - 1) * SHA256_BLOCK_SIZE, cudaMemcpyDeviceToHost, stream), "cudaMemcpyAsync");
-        cudaErrorCheck(cudaFreeAsync(cuda_tree_data, stream), "cudaFreeAsync");
 
         cudaErrorCheck(cudaStreamSynchronize(stream), "cudaStreamSynchronize");
         cudaErrorCheck(cudaStreamDestroy(stream), "cudaStreamDestroy");

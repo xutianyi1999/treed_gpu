@@ -16,4 +16,4 @@
 #pragma once
 #include "config.h"
 
-void build_tree(int device, BYTE* tree_data, size_t nodes);
+void build_tree(int device, BYTE* tree_data, BYTE* cuda_tree_data, size_t nodes);

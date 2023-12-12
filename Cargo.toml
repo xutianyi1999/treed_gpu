@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 sha2 = "0.10"
 digest = "0.10"
-rayon = "1"
+crossbeam-channel = "0.5"
 
 [dev-dependencies]
 
