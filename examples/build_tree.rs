@@ -1,4 +1,6 @@
+use std::alloc::Layout;
 use std::path::PathBuf;
+use std::slice;
 use std::str::FromStr;
 
 use log4rs::append::console::ConsoleAppender;
@@ -30,6 +32,24 @@ fn logger_init() {
     log4rs::init_config(config).unwrap();
 }
 
+fn alloc_buff(size: usize) -> &'static mut [u8] {
+    let layout = Layout::array::<u8>(size).expect("failed to allocate label buffer");
+    let ptr = hugepage_rs::alloc(layout);
+
+    if ptr.is_null() {
+        panic!("unable to allocate huge page");
+    }
+
+    unsafe {
+        slice::from_raw_parts_mut(ptr, size)
+    }
+}
+
+fn dealloc_buff(ptr: &mut [u8]) {
+    let layout = Layout::array::<u8>(ptr.len()).expect("failed to deallocate label buffer");
+    hugepage_rs::dealloc(ptr.as_mut_ptr(), layout);
+}
+
 fn main() {
     let mut args = std::env::args();
     args.next();
@@ -42,5 +62,8 @@ fn main() {
     logger_init();
 
     let md = std::fs::metadata(&in_path).unwrap();
-    treed_gpu::build_treed(&in_path, &out_path, &mut vec![0u8; md.len() as usize * 2 - 32]).unwrap();
+
+    let buf = alloc_buff(md.len() as usize * 2 - 32);
+    treed_gpu::build_treed(&in_path, &out_path, buf).unwrap();
+    dealloc_buff(buf)
 }
