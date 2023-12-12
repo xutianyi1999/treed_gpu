@@ -114,7 +114,7 @@ pub fn build_treed(
 
     std::thread::scope(|s| {
         s.spawn(|| {
-            let devices = create_device(CHUNK_SIZE, 2).unwrap();
+            let devices = create_device(CHUNK_SIZE * 2 - 32, 2).unwrap();
 
             for d in devices {
                 device_pool_tx.send(d).unwrap();
