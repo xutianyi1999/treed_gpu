@@ -95,7 +95,7 @@ pub fn build_treed(
     in_path: &Path,
     out_path: &Path,
     buffer: &mut [u8],
-) -> io::Result<()> {
+) -> io::Result<[u8; 32]> {
     let buffer = &Wrap(&*UnsafeCell::from_mut(buffer));
 
     let mut in_file = std::fs::File::open(in_path)?;
@@ -216,9 +216,14 @@ pub fn build_treed(
             *slice
         }).collect();
 
-        while !nodes.is_empty() {
+        loop {
             for node in nodes.as_slice() {
                 out_file.write_all(node)?;
+            }
+
+            if nodes.len() == 1 {
+                info!("build total sub_tree use: {:?}", t.elapsed());
+                return Ok(nodes[0]);
             }
 
             nodes = nodes.chunks_exact(2).map(|nodes| {
@@ -234,8 +239,5 @@ pub fn build_treed(
                 *out
             }).collect();
         }
-
-        info!("build total sub_tree use: {:?}", t.elapsed());
-        Ok(())
     })
 }
