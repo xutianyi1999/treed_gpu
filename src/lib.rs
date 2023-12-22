@@ -11,6 +11,7 @@ use std::io::{IoSlice, Read, Write};
 use std::path::Path;
 use std::ptr::null_mut;
 use std::time::Instant;
+use crossbeam_channel::Sender;
 
 use sha2::{Digest, Sha256};
 
@@ -58,22 +59,23 @@ impl Drop for Device {
     }
 }
 
-fn create_device(buff_size: usize, device_batch: usize) -> io::Result<Vec<Device>> {
+fn create_device(
+    buff_size: usize,
+    device_batch: usize,
+    pool: &Sender<Device>
+) {
     let mut count = 0;
+
     unsafe {
         cudaGetDeviceCount(&mut count);
     }
 
-    let mut device_list = Vec::with_capacity(count as usize * device_batch);
-
     for _ in 0..device_batch {
         for i in 0..count {
-            let device = Device::new(i, buff_size)?;
-            device_list.push(device);
+            let device = Device::new(i, buff_size).unwrap();
+            pool.send(device).unwrap();
         }
     }
-
-    Ok(device_list)
 }
 
 
@@ -82,8 +84,6 @@ fn trim_to_fr32(buff: &mut [u8; 32]) {
     // strip last two bits, to ensure result is in Fr.
     buff[31] &= 0b0011_1111;
 }
-
-const CHUNK_SIZE: usize = 2 * 1024 * 1024 * 1024;
 
 struct Wrap<T>(T);
 
@@ -95,13 +95,19 @@ pub fn build_treed(
     in_path: &Path,
     out_path: &Path,
     buffer: &mut [u8],
+    cuda_memory_limit: usize
 ) -> io::Result<[u8; 32]> {
+    if !cuda_memory_limit.is_power_of_two() {
+        return Err(io::Error::new(io::ErrorKind::Other, "cuda memory limit must power of 2"));
+    }
+
+    let chunk_size = cuda_memory_limit / 2 / 2;
     let buffer = &Wrap(&*UnsafeCell::from_mut(buffer));
 
     let mut in_file = std::fs::File::open(in_path)?;
     let file_size = in_file.metadata()?.len() as usize;
 
-    if !file_size.is_power_of_two() || file_size < CHUNK_SIZE {
+    if !file_size.is_power_of_two() || file_size < chunk_size {
         return Err(io::Error::new(io::ErrorKind::Other, "file size not match"));
     }
 
@@ -114,15 +120,11 @@ pub fn build_treed(
     let (base_data_write, base_data_read) = crossbeam_channel::unbounded();
     let (tree_data_write, tree_data_read) = crossbeam_channel::unbounded();
 
-    let chunks = file_size / CHUNK_SIZE;
+    let chunks = file_size / chunk_size;
 
     std::thread::scope(|s| {
         s.spawn(|| {
-            let devices = create_device(CHUNK_SIZE * 2 - 32, 2).unwrap();
-
-            for d in devices {
-                device_pool_tx.send(d).unwrap();
-            }
+            create_device(chunk_size * 2 - 32, 2, &device_pool_tx);
         });
 
         let base_data_writer = s.spawn(move || {
@@ -142,7 +144,7 @@ pub fn build_treed(
         let t = Instant::now();
 
         while chunk_index < chunks {
-            let chunk = &mut unsafe { &mut *buffer.0.get() }[offset..offset + CHUNK_SIZE];
+            let chunk = &mut unsafe { &mut *buffer.0.get() }[offset..offset + chunk_size];
             in_file.read_exact(chunk)?;
 
             let i = Wrap(chunk_index);
@@ -150,23 +152,23 @@ pub fn build_treed(
             s.spawn(|| {
                 let i = i;
                 let i = i.0;
-                let offset = i * (CHUNK_SIZE * 2 - 32);
+                let offset = i * (chunk_size * 2 - 32);
 
                 let buffer = buffer;
                 let buff = unsafe { &mut *buffer.0.get() };
-                let tree_data = &mut buff[offset..offset + CHUNK_SIZE * 2 - 32];
+                let tree_data = &mut buff[offset..offset + chunk_size * 2 - 32];
 
                 let device = device_pool_rx.recv().unwrap();
                 let t = Instant::now();
-                unsafe { build_tree(device.index, tree_data.as_mut_ptr(), device.buff, CHUNK_SIZE / 32) };
+                unsafe { build_tree(device.index, tree_data.as_mut_ptr(), device.buff, chunk_size / 32) };
                 info!("build_tree use: {:?}", t.elapsed());
                 device_pool_tx.send(device).unwrap();
 
-                tree_data_write.send((i, &tree_data[CHUNK_SIZE..])).unwrap();
+                tree_data_write.send((i, &tree_data[chunk_size..])).unwrap();
             });
 
             base_data_write.send(&*chunk).unwrap();
-            offset += CHUNK_SIZE * 2 - 32;
+            offset += chunk_size * 2 - 32;
             chunk_index += 1;
         }
 
@@ -178,7 +180,7 @@ pub fn build_treed(
         let t = Instant::now();
 
         let mut expect_index = 0usize;
-        let mut chunk_size = CHUNK_SIZE / 2;
+        let mut chunk_size = chunk_size / 2;
         let mut sub_tree_data = Vec::with_capacity(chunks);
 
         while expect_index < chunks {

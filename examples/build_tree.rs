@@ -64,6 +64,6 @@ fn main() {
     let md = std::fs::metadata(&in_path).unwrap();
 
     let buf = alloc_buff(md.len() as usize * 2 - 32);
-    treed_gpu::build_treed(&in_path, &out_path, buf).unwrap();
+    treed_gpu::build_treed(&in_path, &out_path, buf, 4 * 1024 * 1024 * 1024).unwrap();
     dealloc_buff(buf)
 }
