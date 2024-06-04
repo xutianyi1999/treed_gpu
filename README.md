@@ -1,13 +1,19 @@
 treed_gpu
 ===
 
-Build TreeD with GPU
+Build TreeD with GPU.
+
+Supports simultaneous calculations on multiple GPUs and is faster than CPU multi-thread construction.
 
 [![Latest version](https://img.shields.io/crates/v/treed_gpu.svg)](https://crates.io/crates/treed_gpu)
 [![Documentation](https://docs.rs/treed_gpu/badge.svg)](https://docs.rs/treed_gpu)
 ![License](https://img.shields.io/crates/l/log.svg)
 
 ### Usage
+
+- CUDA Toolchain
+- Rust Nightly Toolchain
+
 link `treed_gpu` crate
 
 Cargo.toml
