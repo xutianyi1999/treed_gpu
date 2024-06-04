@@ -3,6 +3,10 @@ treed_gpu
 
 Build TreeD with GPU
 
+[![Latest version](https://img.shields.io/crates/v/treed_gpu.svg)](https://crates.io/crates/treed_gpu)
+[![Documentation](https://docs.rs/treed_gpu/badge.svg)](https://docs.rs/treed_gpu)
+![License](https://img.shields.io/crates/l/log.svg)
+
 ### Usage
 link `treed_gpu` crate
 
