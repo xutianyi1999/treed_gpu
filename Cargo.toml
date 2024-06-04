@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["xutianyi <xutianyi1999@live.com>"]
 edition = "2021"
 description = "Build TreeD with GPU"
-license = "Apache-2.0 license"
+license = "Apache-2.0"
 repository = "https://github.com/gh-efforts/treed_gpu"
 
 [dependencies]
