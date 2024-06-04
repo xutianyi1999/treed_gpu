@@ -1,6 +1,6 @@
 [package]
 name = "treed_gpu"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["xutianyi <xutianyi1999@live.com>"]
 edition = "2021"
 description = "Build TreeD with GPU"
