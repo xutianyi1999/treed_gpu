@@ -1,9 +1,10 @@
 [package]
 name = "treed_gpu"
 version = "0.1.0"
+authors = ["xutianyi <xutianyi1999@live.com>"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Build TreeD with GPU"
+license = "Apache-2.0 license"
 
 [dependencies]
 sha2 = "0.10"
