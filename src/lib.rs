@@ -104,8 +104,8 @@ unsafe impl<T> Sync for Wrap<T> {}
 ///
 /// TreeD root hash
 pub fn build_treed(
-    in_path: &Path,
-    out_path: &Path,
+    in_path: impl AsRef<Path>,
+    out_path: impl AsRef<Path>,
     buffer: &mut [u8],
     cuda_memory_limit: usize
 ) -> io::Result<[u8; 32]> {
