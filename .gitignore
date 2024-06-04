@@ -3,3 +3,4 @@
 /src/cuda/cmake-build-debug/
 /src/cuda/.idea/
 /Cargo.lock
+/.idea
