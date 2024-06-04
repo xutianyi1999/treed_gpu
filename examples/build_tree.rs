@@ -1,8 +1,8 @@
-use std::alloc::Layout;
+use std::io;
 use std::path::PathBuf;
-use std::slice;
 use std::str::FromStr;
 
+use clap::Parser;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Root};
 use log4rs::encode::pattern::PatternEncoder;
@@ -32,38 +32,26 @@ fn logger_init() {
     log4rs::init_config(config).unwrap();
 }
 
-fn alloc_buff(size: usize) -> &'static mut [u8] {
-    let layout = Layout::array::<u8>(size).expect("failed to allocate label buffer");
-    let ptr = hugepage_rs::alloc(layout);
+#[derive(Parser)]
+struct Args {
+    #[arg(short, long)]
+    unsealed_path: PathBuf,
 
-    if ptr.is_null() {
-        panic!("unable to allocate huge page");
-    }
-
-    unsafe {
-        slice::from_raw_parts_mut(ptr, size)
-    }
+    #[arg(short, long, default_value = "treed_file" )]
+    output_treed: PathBuf
 }
 
-fn dealloc_buff(ptr: &mut [u8]) {
-    let layout = Layout::array::<u8>(ptr.len()).expect("failed to deallocate label buffer");
-    hugepage_rs::dealloc(ptr.as_mut_ptr(), layout);
-}
+fn main() -> io::Result<()> {
+    let args = Args::parse();
 
-fn main() {
-    let mut args = std::env::args();
-    args.next();
-
-    let in_path = args.next().expect("must need in file path");
-
-    let out_path = PathBuf::from(format!("{}_treed", in_path));
-    let in_path = PathBuf::from(in_path);
+    let out_path = args.output_treed;
+    let in_path = args.unsealed_path;
 
     logger_init();
 
-    let md = std::fs::metadata(&in_path).unwrap();
+    let md = std::fs::metadata(&in_path)?;
 
-    let buf = alloc_buff(md.len() as usize * 2 - 32);
-    treed_gpu::build_treed(&in_path, &out_path, buf, 4 * 1024 * 1024 * 1024).unwrap();
-    dealloc_buff(buf)
+    let mut buf = vec![0u8; md.len() as usize * 2 - 32];
+    let _root = treed_gpu::build_treed(&in_path, &out_path, &mut buf, 4 * 1024 * 1024 * 1024)?;
+    Ok(())
 }

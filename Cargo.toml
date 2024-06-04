@@ -13,7 +13,7 @@ log = "0.4"
 
 [dev-dependencies]
 log4rs = "1"
-hugepage-rs = { git = "https://github.com/cppcoffee/hugepage-rs.git" }
+clap = { version = "4", features = ["derive"] }
 
 [build-dependencies]
 cc = "1"

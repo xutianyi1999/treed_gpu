@@ -91,6 +91,18 @@ unsafe impl<T> Send for Wrap<T> {}
 
 unsafe impl<T> Sync for Wrap<T> {}
 
+/// Build TreeD with GPU
+///
+/// # Parameters
+///
+/// - `in_path`: unsealed file
+/// - `out_path`: TreeD file
+/// - `buffer`: require buffer size >= unsealed-file-size * 2 - 32
+/// - `cuda_memory_limit`: maximum GPU memory used, unit is byte, power of tow
+///
+/// # Returns
+///
+/// TreeD root hash
 pub fn build_treed(
     in_path: &Path,
     out_path: &Path,
