@@ -103,7 +103,6 @@ Replace it with the following code
     let cuda_memory_size = 4 * 1024 * 1024 * 1024;
     let buff = vec![0u8; treed_size];
     let root = treed_gpu::build_treed(input_file.as_ref(), &out_file, buff, cuda_memory_size)?;
-    dealloc_buff(buff);
     let root = <Tree::Hasher as Hasher>::Domain::from_slice(&root);
 
     config.size = Some(treed_size / 32);
