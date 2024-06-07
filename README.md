@@ -23,12 +23,12 @@ It achieves this by constructing a Merkle tree that enables efficient and secure
 
 *Data Segmentation:*
 
-The original data is divided into smaller segments or chunks. 
+The original data is divided into smaller chunks. 
 Each chunk will become a leaf node in the Merkle tree
 
 *Hash Calculation:*
 
-Node data chunk is hashed using a cryptographic hash function (e.g., SHA-256). 
+Node data chunk is hashed using a cryptographic hash function (SHA-256). 
 This results in a list of hash values corresponding to the leaf nodes.
 
 *Tree Construction:*
@@ -80,7 +80,7 @@ let tree_root = treed_gput::build_treed(
 #### Merged into rust-fil-proofs
 [rust-fil-proffs/filecoin-proofs/Cargo.toml](https://github.com/filecoin-project/rust-fil-proofs/blob/51c7a79d9058a45988290b4da7217bec05750cc8/filecoin-proofs/Cargo.toml)
 
-add a line
+Add a line
 
 ```toml
 [dependencies]
