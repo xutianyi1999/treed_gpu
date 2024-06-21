@@ -1,7 +1,4 @@
 /*************************** HEADER FILES ***************************/
-#include <stdlib.h>
-#include <memory.h>
-#include <iostream>
 
 extern "C" {
 #include "treed.cuh"
@@ -12,7 +9,7 @@ extern "C" {
 
 void cudaErrorCheck(cudaError_t error, const char* message) {
     if (error != cudaSuccess) {
-        std::cerr << message << ": " << cudaGetErrorString(error) << std::endl;
+        printf("%s: %s\n", message, cudaGetErrorString(error));
         exit(EXIT_FAILURE);
     }
 }
