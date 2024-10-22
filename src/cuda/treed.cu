@@ -205,9 +205,10 @@ __global__ void create_tree(BYTE* tree_data)
     nodes /= 2;
     size_t block_nodes = blockDim.x;
 
-    while(threadIdx.x < block_nodes / 2)
+    while(block_nodes >= 2)
     {
         __syncthreads();
+
         left = tree_data + (block_nodes * blockIdx.x + threadIdx.x * 2) * SHA256_BLOCK_SIZE;
         right = left + SHA256_BLOCK_SIZE;
         tree_data += nodes * SHA256_BLOCK_SIZE;
@@ -215,7 +216,10 @@ __global__ void create_tree(BYTE* tree_data)
         nodes /= 2;
         block_nodes /= 2;
 
-        piece_hash(left, right, tree_data + (block_nodes * blockIdx.x + threadIdx.x) * SHA256_BLOCK_SIZE);
+        if(threadIdx.x < block_nodes)
+        {
+            piece_hash(left, right, tree_data + (block_nodes * blockIdx.x + threadIdx.x) * SHA256_BLOCK_SIZE);
+        }
     }
 }
 
